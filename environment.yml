@@ -1,0 +1,13 @@
+name: thz-hardware
+
+# Additional channels reduces sourcing dependencies via pip
+channels:
+  - anaconda
+  - conda-forge
+  - defaults
+
+# Dependencies should have fixed version where possible to make environment more reproducable
+dependencies:
+  - python=3.10.0
+  - numpy=1.23.5
+  - pycromanager=0.26.0
