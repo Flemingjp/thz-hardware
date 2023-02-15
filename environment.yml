@@ -12,3 +12,4 @@ dependencies:
   - numpy=1.23.5
   - pycromanager=0.26.0 # Micromanager 2.0.1 20221006
   - nidaqmx-python=0.6.4
+  - setuptools
