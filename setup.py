@@ -12,5 +12,5 @@ setuptools.setup(
         "pycromanager==0.26.0",
         "nidaqmx==0.6.4",
     ],
-    python_requires=">=3.10.0"
+    python_requires=">=3.7.0"
 )
