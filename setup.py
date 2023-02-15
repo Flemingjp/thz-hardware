@@ -9,8 +9,8 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     install_requires=[
         "numpy>=1.23.5",
-        "pycromanager=0.26.0",
-        "nidaqmx=0.6.4",
+        "pycromanager==0.26.0",
+        "nidaqmx==0.6.4",
     ],
     python_requires=">=3.10.0"
 )
