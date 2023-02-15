@@ -87,11 +87,12 @@ class THzAcquisition(Acquisition):
 
 
 
-#%% Demo Code
-def demo_processor(thz_on, thz_off, data):
-    return data
+if __name__ == "__main__":
 
-with THzAcquisition(name='test', directory='./', image_processor=demo_processor) as acq:
-    acq.acquire(3)
+    def demo_processor(thz_on, thz_off, data):
+        return data
+    
+    with THzAcquisition(name='test', directory='./', image_processor=demo_processor) as acq:
+        acq.acquire(3)
 
-data = acq.get_data()
+    data = acq.get_data()
