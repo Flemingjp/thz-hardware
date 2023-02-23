@@ -1,98 +1,62 @@
-from pycromanager import Acquisition
+from pycromanager import Acquisition, Core, multi_d_acquisition_events
+
+def acquisiton_events(n: int = 1, **kwargs) -> dict:
+    return multi_d_acquisition_events(num_time_points=n, channels = ["Off", "On"], channel_group = "THz UCA", **kwargs)
+
+def validate_configuration() -> bool:
+    '''
+    Validates the loaded MicroManager profile to check any THz acquisition will run correctly. All failed tests should be reported.
+    '''
+    core = Core()
+
+    if not core.is_config_defined("THz UCA", "On"):
+        raise Exception("MicroManager profile has no group named 'THz UCA' with preset 'On'")
+    
+    if not core.is_config_defined("THz UCA", "Off"):
+        raise Exception("MicroManager profile has no group named 'THz UCA' with preset 'Off'")
+    
+    return True
+
 
 class THzAcquisition(Acquisition):
     '''
+    THzAcquisition
     '''
 
-    def __init__(self, image_processor=None, **kwargs):
+    def __init__(self, data_processor: callable = None, **kwargs):
         '''
         '''
-        self.image_processor = image_processor
-        self.data = {}
+        super().__init__(image_process_fn=self._process_images, **kwargs)
 
-        self._raw = False
-        self._current_index = None
-        self._current_thz_on = None
-        self._current_thz_off = None
-
-        super().__init__(
-            pre_hardware_hook_fn=self._pre_hardware_hook, 
-            post_hardware_hook_fn=self._post_hardware_hook,
-            post_camera_hook_fn=self._post_camera_hook,
-            image_process_fn=self._process_thz_image, 
-            **kwargs)
+        validate_configuration()
+        
+        self._data = {}
+        self._data_processor = data_processor
+        self._last_thz_off_image = None
 
 
-    def _pre_hardware_hook(self, event):
-        print("pre_hardware_hook")
-        return event
-
-    def _post_hardware_hook(self, event):
-        print("post_hardware_hook")
-        return event
-
-    def _post_camera_hook(self, event):
-        print("post_camera_hook")
-        return event
-
-    def _process_thz_image(self, image, metadata):
+    def _process_images(self, image, metadata):
         '''
         '''
-        print("image_processor")
-        i = metadata['Axes']['i']
-        thz = metadata['Axes']['thz_on'] == 1
+        channel = metadata['Axes']['channel'].lower()
 
-        # Cache the current image
-        if thz:
-            self._current_thz_on = image
+        if channel == 'off':
+            self._last_thz_off_image = image
         else:
-            self._current_thz_off = image
+            if self._data_processor:
+                self._data = self._data_processor(self.data, thz_on=image, thz_off=self._last_thz_off_image)
 
-        # Check if start of new image pair
-        if not self._current_index == i:
-            self._current_index = i
-        else:
-            # Call child processing function
-            if self.image_processor:
-                self.data = self.image_processor(self._current_thz_on, self._current_thz_off, self.data)
-
-            # Process image pair
-            thz_difference = self._current_thz_on - self._current_thz_off
-
-            # Reset cache for next pair
-            self._current_index = None
-            self._current_thz_on = None
-            self._current_thz_off = None
-
-            return thz_difference, metadata
+        return image, metadata
     
 
-    def acquire(self, n: int):
-        '''
-        '''        
-        events = []
- 
-        for i in range(n):
-            events.append({'axes': {'i': i, 'thz_on': 0}})
-            events.append({'axes': {'i': i, 'thz_on': 1}})
-
-        super().acquire(events)
-
-
     def get_data(self) -> dict:
-        '''
-        '''
-        return self.data
-
-
-
+        return self._data
+    
 
 if __name__ == "__main__":
 
-    def demo_processor(thz_on, thz_off, data):
+    def demo_processor(data: dict, thz_on, thz_off):
         return data
-    
-    with THzAcquisition(name='test', directory='./', image_processor=demo_processor) as acq:
-        acq.acquire(3)
-
-    data = acq.get_data()
+        
+    with THzAcquisition(name="test", directory='./', data_processor=demo_processor) as acq:
+        acq.acquire(acquisiton_events())
